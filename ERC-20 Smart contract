@@ -1,0 +1,46 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.0;
+
+contract RentContract {
+    address public houseowner;
+    address public rentpayer;
+    uint256 public rentAmount;
+    uint256 public rentDueDate;
+
+    
+    event RentPaid(address indexed _from, uint256 _amount);
+    
+    constructor(address _houseowner, address _rentpayer, uint256 _rentAmount, uint256 _rentDueDate) {
+        houseowner = _houseowner;
+        rentpayer = _rentpayer;
+        rentAmount = _rentAmount;
+        rentDueDate = _rentDueDate;
+        houseowner=msg.sender;
+    }
+    
+    function payRent() public payable {
+        require(rentpayer == msg.sender, "Only rentpayer can pay rent");
+        require(rentAmount==msg.value, "Incorrect rent amount sent");
+        require(block.timestamp <= rentDueDate, "Rent is overdue");
+        
+        
+        payable(houseowner).transfer(msg.value);
+        
+        emit RentPaid(msg.sender, msg.value);
+    }
+    
+    function setRentDueDate(uint256 _newDueDate) public {
+        require(msg.sender == houseowner, "Only houseowner can set new due date");
+        rentDueDate = _newDueDate;
+    }
+    
+    function withdrawExcess() public {
+        require(msg.sender == houseowner, "Only houseowner can withdraw excess funds");
+        require(address(this).balance > rentAmount, "No excess funds to withdraw");
+        
+        uint256 excessAmount = address(this).balance - rentAmount;
+        payable(houseowner).transfer(excessAmount);
+    }
+    
+    receive() external payable {}
+}
